@@ -115,7 +115,7 @@ func TestGetZoneByProviderID(t *testing.T) {
 	})
 
 	zones := newZones(env.Client, "node6")
-	zone, err := zones.GetZoneByProviderID("hcloud://1")
+	zone, err := zones.GetZoneByProviderID("hetzner://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

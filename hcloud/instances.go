@@ -17,42 +17,36 @@ limitations under the License.
 package hcloud
 
 import (
-	"context"
 	"errors"
 	"strconv"
 
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 type instances struct {
-	client *hcloud.Client
+	client *HetznerClient
 }
 
-func newInstances(client *hcloud.Client) *instances {
+func newInstances(client *HetznerClient) *instances {
 	return &instances{client}
 }
 
 func (i *instances) NodeAddressesByProviderID(providerID string) ([]v1.NodeAddress, error) {
-	id, err := providerIDToServerID(providerID)
+	server, err := i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
-
-	server, err := getServerByID(i.client, id)
-	if err != nil {
-		return nil, err
-	}
-	return nodeAddresses(server), nil
+	return nodeAddresses(server.Name, server.Ipv4), nil
+	// return nil, cloudprovider.InstanceNotFound
 }
 
 func (i *instances) NodeAddresses(nodeName types.NodeName) ([]v1.NodeAddress, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return nil, err
 	}
-	return nodeAddresses(server), nil
+	return nodeAddresses(server.Name, server.Ipv4), nil
 }
 
 func (i *instances) ExternalID(nodeName types.NodeName) (string, error) {
@@ -60,7 +54,7 @@ func (i *instances) ExternalID(nodeName types.NodeName) (string, error) {
 }
 
 func (i *instances) InstanceID(nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return "", err
 	}
@@ -68,24 +62,19 @@ func (i *instances) InstanceID(nodeName types.NodeName) (string, error) {
 }
 
 func (i *instances) InstanceType(nodeName types.NodeName) (string, error) {
-	server, err := getServerByName(i.client, string(nodeName))
+	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return "", err
 	}
-	return server.ServerType.Name, nil
+	return server.InstanceType, nil
 }
 
 func (i *instances) InstanceTypeByProviderID(providerID string) (string, error) {
-	id, err := providerIDToServerID(providerID)
+	server, err := i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return "", err
 	}
-
-	server, err := getServerByID(i.client, id)
-	if err != nil {
-		return "", err
-	}
-	return server.ServerType.Name, nil
+	return server.InstanceType, nil
 }
 
 func (i *instances) AddSSHKeyToAllInstances(user string, keyData []byte) error {
@@ -97,14 +86,8 @@ func (i *instances) CurrentNodeName(hostname string) (types.NodeName, error) {
 }
 
 func (i instances) InstanceExistsByProviderID(providerID string) (exists bool, err error) {
-	var id int
-	id, err = providerIDToServerID(providerID)
-	if err != nil {
-		return
-	}
-
-	var server *hcloud.Server
-	server, _, err = i.client.Server.GetByID(context.Background(), id)
+	var server *Server
+	server, err = i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return
 	}
@@ -112,12 +95,12 @@ func (i instances) InstanceExistsByProviderID(providerID string) (exists bool, e
 	return
 }
 
-func nodeAddresses(server *hcloud.Server) []v1.NodeAddress {
+func nodeAddresses(name, ipv4 string) []v1.NodeAddress {
 	var addresses []v1.NodeAddress
 	addresses = append(
 		addresses,
-		v1.NodeAddress{Type: v1.NodeHostName, Address: server.Name},
-		v1.NodeAddress{Type: v1.NodeExternalIP, Address: server.PublicNet.IPv4.IP.String()},
+		v1.NodeAddress{Type: v1.NodeHostName, Address: name},
+		v1.NodeAddress{Type: v1.NodeExternalIP, Address: ipv4},
 	)
 	return addresses
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"github.com/hetznercloud/hcloud-go/hcloud/schema"
 	"k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 )
 
 func TestNodeAddressesByProviderID(t *testing.T) {
@@ -44,7 +45,7 @@ func TestNodeAddressesByProviderID(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	addr, err := instances.NodeAddressesByProviderID("hcloud://1")
+	addr, err := instances.NodeAddressesByProviderID("hetzner://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -160,7 +161,7 @@ func TestInstanceTypeByProviderID(t *testing.T) {
 	})
 
 	instances := newInstances(env.Client)
-	instanceType, err := instances.InstanceTypeByProviderID("hcloud://1")
+	instanceType, err := instances.InstanceTypeByProviderID("hetzner://1")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 		})
 
 		instances := newInstances(env.Client)
-		exists, err := instances.InstanceExistsByProviderID("hcloud://1")
+		exists, err := instances.InstanceExistsByProviderID("hetzner://1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -209,8 +210,8 @@ func TestInstanceExistsByProviderID(t *testing.T) {
 		})
 
 		instances := newInstances(env.Client)
-		exists, err := instances.InstanceExistsByProviderID("hcloud://1")
-		if err != nil {
+		exists, err := instances.InstanceExistsByProviderID("hetzner://1")
+		if err != cloudprovider.InstanceNotFound {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		if exists {

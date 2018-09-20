@@ -17,57 +17,52 @@ limitations under the License.
 package hcloud
 
 import (
-	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
 
 type zones struct {
-	client   *hcloud.Client
+	client   *HetznerClient
 	nodeName string // name of the node the programm is running on
 }
 
-func newZones(client *hcloud.Client, nodeName string) cloudprovider.Zones {
+func newZones(client *HetznerClient, nodeName string) cloudprovider.Zones {
 	return zones{client, nodeName}
 }
 
 func (z zones) GetZone() (zone cloudprovider.Zone, err error) {
-	var server *hcloud.Server
-	server, err = getServerByName(z.client, z.nodeName)
+	var server *Server
+	server, err = z.client.GetServerByName(string(z.nodeName))
 	if err != nil {
 		return
 	}
-	zone = zoneFromServer(server)
+	zone = zoneFromServer(server.Region, server.Failuredomain)
 	return
 }
 
 func (z zones) GetZoneByProviderID(providerID string) (zone cloudprovider.Zone, err error) {
-	var id int
-	if id, err = providerIDToServerID(providerID); err != nil {
-		return
-	}
-	var server *hcloud.Server
-	server, err = getServerByID(z.client, id)
+	var server *Server
+	server, err = z.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return
 	}
-	zone = zoneFromServer(server)
+	zone = zoneFromServer(server.Region, server.Failuredomain)
 	return
 }
 
 func (z zones) GetZoneByNodeName(nodeName types.NodeName) (zone cloudprovider.Zone, err error) {
-	var server *hcloud.Server
-	server, err = getServerByName(z.client, string(nodeName))
+	var server *Server
+	server, err = z.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return
 	}
-	zone = zoneFromServer(server)
+	zone = zoneFromServer(server.Region, server.Failuredomain)
 	return
 }
 
-func zoneFromServer(server *hcloud.Server) (zone cloudprovider.Zone) {
+func zoneFromServer(region, failuredomain string) (zone cloudprovider.Zone) {
 	return cloudprovider.Zone{
-		Region:        server.Datacenter.Location.Name,
-		FailureDomain: server.Datacenter.Name,
+		Region:        region,
+		FailureDomain: failuredomain,
 	}
 }

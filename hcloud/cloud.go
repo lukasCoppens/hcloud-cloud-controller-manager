@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/appscode/go-hetzner"
 	"github.com/hetznercloud/hcloud-go/hcloud"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/controller"
@@ -29,12 +30,14 @@ import (
 const (
 	hcloudTokenENVVar    = "HCLOUD_TOKEN"
 	hcloudEndpointENVVar = "HCLOUD_ENDPOINT"
+	hrobotUsername       = "HROBOT_USERNAME"
+	hrobotPassword       = "HROBOT_PASSWORD"
 	nodeNameENVVar       = "NODE_NAME"
-	providerName         = "hcloud"
+	providerName         = "hetzner"
 )
 
 type cloud struct {
-	client    *hcloud.Client
+	client    *HetznerClient
 	instances cloudprovider.Instances
 	zones     cloudprovider.Zones
 }
@@ -42,7 +45,7 @@ type cloud struct {
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	token := os.Getenv(hcloudTokenENVVar)
 	if token == "" {
-		return nil, fmt.Errorf("environment variable %q is required", hcloudEndpointENVVar)
+		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
 	}
 	nodeName := os.Getenv(nodeNameENVVar)
 	if nodeName == "" {
@@ -57,10 +60,20 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 	}
 	client := hcloud.NewClient(opts...)
 
+	hetznerRobotUsername := os.Getenv(hrobotUsername)
+	hetznerRobotPassword := os.Getenv(hrobotPassword)
+	var robotClient *hetzner.Client
+	if hetznerRobotUsername != "" && hetznerRobotPassword != "" {
+		robotClient = hetzner.NewClient(hetznerRobotUsername, hetznerRobotPassword)
+	}
+	hetznerClient := &HetznerClient{
+		cloudClient: client,
+		robotClient: robotClient,
+	}
 	return &cloud{
-		client:    client,
-		zones:     newZones(client, nodeName),
-		instances: newInstances(client),
+		client:    hetznerClient,
+		zones:     newZones(hetznerClient, nodeName),
+		instances: newInstances(hetznerClient),
 	}, nil
 }
 

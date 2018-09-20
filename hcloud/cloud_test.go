@@ -30,7 +30,7 @@ import (
 type testEnv struct {
 	Server *httptest.Server
 	Mux    *http.ServeMux
-	Client *hcloud.Client
+	Client *HetznerClient
 }
 
 func (env *testEnv) Teardown() {
@@ -48,10 +48,11 @@ func newTestEnv() testEnv {
 		hcloud.WithToken("token"),
 		hcloud.WithBackoffFunc(func(_ int) time.Duration { return 0 }),
 	)
+	hetznerClient := &HetznerClient{cloudClient: client}
 	return testEnv{
 		Server: server,
 		Mux:    mux,
-		Client: client,
+		Client: hetznerClient,
 	}
 }
 
@@ -115,7 +116,7 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("ProviderName", func(t *testing.T) {
-		if cloud.ProviderName() != "hcloud" {
+		if cloud.ProviderName() != "hetzner" {
 			t.Error("ProviderName should be hcloud")
 		}
 	})
