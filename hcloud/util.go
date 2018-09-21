@@ -120,7 +120,7 @@ func convertRobotServerToServer(server *hetzner.ServerSummary) *Server {
 		Ipv4:          server.ServerIP,
 		Failuredomain: lowerCaseDc,
 		Region:        convertFailureDomainToRegion(lowerCaseDc),
-		InstanceType:  server.Product,
+		InstanceType:  strings.ToLower(server.Product),
 		ID:            server.ServerNumber,
 	}
 }
