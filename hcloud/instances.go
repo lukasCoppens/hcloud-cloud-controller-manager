@@ -20,7 +20,8 @@ import (
 	"errors"
 	"strconv"
 
-	"k8s.io/api/core/v1"
+	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -29,31 +30,41 @@ type instances struct {
 }
 
 func newInstances(client *HetznerClient) *instances {
+	logrus.Debug("Returning new instances")
 	return &instances{client}
 }
 
 func (i *instances) NodeAddressesByProviderID(providerID string) ([]v1.NodeAddress, error) {
+	logrus.Debug("NodeAddressesByProvider")
+	logrus.Debug("Searching for server")
 	server, err := i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Debug("parsing server to node addresses")
 	return nodeAddresses(server.Name, server.Ipv4), nil
 	// return nil, cloudprovider.InstanceNotFound
 }
 
 func (i *instances) NodeAddresses(nodeName types.NodeName) ([]v1.NodeAddress, error) {
+	logrus.Debug("NodeAddresses")
+	logrus.Debug("Getting server by name")
 	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return nil, err
 	}
+	logrus.Debug("Return nodeAddresses")
 	return nodeAddresses(server.Name, server.Ipv4), nil
 }
 
 func (i *instances) ExternalID(nodeName types.NodeName) (string, error) {
+	logrus.Debug("Return externalID")
 	return i.InstanceID(nodeName)
 }
 
 func (i *instances) InstanceID(nodeName types.NodeName) (string, error) {
+	logrus.Debug("InstanceID")
+	logrus.Debug("Searching server by name")
 	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return "", err
@@ -62,44 +73,52 @@ func (i *instances) InstanceID(nodeName types.NodeName) (string, error) {
 }
 
 func (i *instances) InstanceType(nodeName types.NodeName) (string, error) {
+	logrus.Debug("InstanceType")
+	logrus.Debug("Searching server by name")
 	server, err := i.client.GetServerByName(string(nodeName))
 	if err != nil {
 		return "", err
 	}
+	logrus.Debug("Returning instanceType")
 	return server.InstanceType, nil
 }
 
 func (i *instances) InstanceTypeByProviderID(providerID string) (string, error) {
+	logrus.Debug("Getting ingress type by provider ID")
+	logrus.Debug("Getting server")
 	server, err := i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return "", err
 	}
+	logrus.Debug("Retruning instance type")
 	return server.InstanceType, nil
 }
 
 func (i *instances) AddSSHKeyToAllInstances(user string, keyData []byte) error {
+	logrus.Debug("AddSSHKeyToAllInstances --> not implemented")
 	return errors.New("not implemented")
 }
 
 func (i *instances) CurrentNodeName(hostname string) (types.NodeName, error) {
+	logrus.Debug("Returning current node name")
 	return types.NodeName(hostname), nil
 }
 
 func (i instances) InstanceExistsByProviderID(providerID string) (exists bool, err error) {
+	logrus.Debug("Checking existence by provider ID")
 	var server *Server
+	logrus.Debug("Getting server")
 	server, err = i.client.GetServerByProviderID(providerID)
 	if err != nil {
 		return
 	}
+	logrus.Debug("Checking existence")
 	exists = server != nil
-	if !exists {
-		// Node does not exists, but should not be removed, hybrid cloud, see https://github.com/kubernetes/kubernetes/pull/73171
-		exists = true
-	}
 	return
 }
 
 func nodeAddresses(name, ipv4 string) []v1.NodeAddress {
+	logrus.Debug("Generating node address")
 	var addresses []v1.NodeAddress
 	addresses = append(
 		addresses,

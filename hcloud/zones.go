@@ -17,6 +17,7 @@ limitations under the License.
 package hcloud
 
 import (
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
@@ -27,10 +28,12 @@ type zones struct {
 }
 
 func newZones(client *HetznerClient, nodeName string) cloudprovider.Zones {
+	logrus.Debug("Create new zone")
 	return zones{client, nodeName}
 }
 
 func (z zones) GetZone() (zone cloudprovider.Zone, err error) {
+	logrus.Debug("Get zone for node")
 	var server *Server
 	server, err = z.client.GetServerByName(string(z.nodeName))
 	if err != nil {
@@ -41,6 +44,7 @@ func (z zones) GetZone() (zone cloudprovider.Zone, err error) {
 }
 
 func (z zones) GetZoneByProviderID(providerID string) (zone cloudprovider.Zone, err error) {
+	logrus.Debug("Get zone by provider id")
 	var server *Server
 	server, err = z.client.GetServerByProviderID(providerID)
 	if err != nil {
@@ -51,6 +55,7 @@ func (z zones) GetZoneByProviderID(providerID string) (zone cloudprovider.Zone, 
 }
 
 func (z zones) GetZoneByNodeName(nodeName types.NodeName) (zone cloudprovider.Zone, err error) {
+	logrus.Debug("get zone by nodename")
 	var server *Server
 	server, err = z.client.GetServerByName(string(nodeName))
 	if err != nil {
@@ -61,6 +66,7 @@ func (z zones) GetZoneByNodeName(nodeName types.NodeName) (zone cloudprovider.Zo
 }
 
 func zoneFromServer(region, failuredomain string) (zone cloudprovider.Zone) {
+	logrus.Debug("Get zone from server")
 	return cloudprovider.Zone{
 		Region:        region,
 		FailureDomain: failuredomain,

@@ -23,6 +23,7 @@ import (
 
 	"github.com/appscode/go-hetzner"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/controller"
 )
@@ -34,6 +35,7 @@ const (
 	hrobotPassword       = "HROBOT_PASSWORD"
 	nodeNameENVVar       = "NODE_NAME"
 	providerName         = "hetzner"
+	logLevel             = "LOG_LEVEL"
 )
 
 type cloud struct {
@@ -43,26 +45,34 @@ type cloud struct {
 }
 
 func newCloud(config io.Reader) (cloudprovider.Interface, error) {
+	logrus.Debug("Creating new cloud-provider")
+	logrus.Debug("newCloud - getting hcloud token from env")
 	token := os.Getenv(hcloudTokenENVVar)
 	if token == "" {
 		return nil, fmt.Errorf("environment variable %q is required", hcloudTokenENVVar)
 	}
+	logrus.Debug("newCloud - getting node name from env")
 	nodeName := os.Getenv(nodeNameENVVar)
 	if nodeName == "" {
 		return nil, fmt.Errorf("environment variable %q is required", nodeNameENVVar)
 	}
-
+	logrus.Debugf("newCloud - nodeName: %v", nodeName)
+	logrus.Debug("newCloud - setting options to create cloud client")
 	opts := []hcloud.ClientOption{
 		hcloud.WithToken(token),
 	}
+	logrus.Debug("newCloud - getting endpoint from env vars")
 	if endpoint := os.Getenv(hcloudEndpointENVVar); endpoint != "" {
 		opts = append(opts, hcloud.WithEndpoint(endpoint))
 	}
+	logrus.Debug("newCloud - creating new hcloud client")
 	client := hcloud.NewClient(opts...)
 
+	logrus.Debug("newCloud - getting Hetzner robot creds")
 	hetznerRobotUsername := os.Getenv(hrobotUsername)
 	hetznerRobotPassword := os.Getenv(hrobotPassword)
 	var robotClient *hetzner.Client
+	logrus.Debug("newCloud - creating Hetzner robot client")
 	if hetznerRobotUsername != "" && hetznerRobotPassword != "" {
 		robotClient = hetzner.NewClient(hetznerRobotUsername, hetznerRobotPassword)
 	}
@@ -70,6 +80,7 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 		cloudClient: client,
 		robotClient: robotClient,
 	}
+	logrus.Debug("newCloud - returning cloud provider")
 	return &cloud{
 		client:    hetznerClient,
 		zones:     newZones(hetznerClient, nodeName),
@@ -80,38 +91,53 @@ func newCloud(config io.Reader) (cloudprovider.Interface, error) {
 func (c *cloud) Initialize(clientBuilder controller.ControllerClientBuilder) {}
 
 func (c *cloud) Instances() (cloudprovider.Instances, bool) {
+	logrus.Debug("returning instances")
 	return c.instances, true
 }
 
 func (c *cloud) Zones() (cloudprovider.Zones, bool) {
+	logrus.Debug("returning zones")
 	return c.zones, true
 }
 
 func (c *cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
+	logrus.Debug("LoadBalancer not implemented")
 	return nil, false
 }
 
 func (c *cloud) Clusters() (cloudprovider.Clusters, bool) {
+	logrus.Debug("Cluster not implemented")
 	return nil, false
 }
 
 func (c *cloud) Routes() (cloudprovider.Routes, bool) {
+	logrus.Debug("Routes not implemented")
 	return nil, false
 }
 
 func (c *cloud) ProviderName() string {
+	logrus.Debug("Returning providerName")
 	return providerName
 }
 
 func (c *cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []string) {
+	logrus.Debug("ScrubDNS not implemented")
 	return nil, nil
 }
 
 func (c *cloud) HasClusterID() bool {
+	logrus.Debug("setting hasClusterID to false")
 	return false
 }
 
 func init() {
+	ll := os.Getenv(logLevel)
+	logrus.SetLevel(logrus.InfoLevel)
+	level, err := logrus.ParseLevel(ll)
+	if err == nil {
+		logrus.SetLevel(level)
+	}
+	logrus.Info("registering our own sofware as cloud provider")
 	cloudprovider.RegisterCloudProvider(providerName, func(config io.Reader) (cloudprovider.Interface, error) {
 		return newCloud(config)
 	})

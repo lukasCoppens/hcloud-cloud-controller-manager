@@ -25,10 +25,12 @@ import (
 
 	"github.com/appscode/go-hetzner"
 	"github.com/hetznercloud/hcloud-go/hcloud"
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
 
 func (hc *HetznerClient) getCloudServerByName(name string) (server *hcloud.Server, err error) {
+	logrus.Debug("Getting cloud server by name")
 	server, _, err = hc.cloudClient.Server.GetByName(context.Background(), name)
 	if err != nil {
 		return
@@ -41,6 +43,7 @@ func (hc *HetznerClient) getCloudServerByName(name string) (server *hcloud.Serve
 }
 
 func (hc *HetznerClient) getRobotServerByName(name string) (*hetzner.ServerSummary, error) {
+	logrus.Debug("Getting robot servers by name")
 	summary, err := hc.getRobotServers()
 	if err != nil {
 		return nil, err
@@ -55,6 +58,7 @@ func (hc *HetznerClient) getRobotServerByName(name string) (*hetzner.ServerSumma
 }
 
 func (hc *HetznerClient) getRobotServers() ([]*hetzner.ServerSummary, error) {
+	logrus.Debug("Getting robot servers")
 	if hc.robotCache != nil && time.Now().Sub(hc.robotCacheLastUpdate) <= time.Minute*15 {
 		// Return from cache
 		return hc.robotCache, nil
@@ -69,6 +73,7 @@ func (hc *HetznerClient) getRobotServers() ([]*hetzner.ServerSummary, error) {
 }
 
 func (hc *HetznerClient) getCloudServerByID(id int) (server *hcloud.Server, err error) {
+	logrus.Debug("Getting cloud servers")
 	server, _, err = hc.cloudClient.Server.GetByID(context.Background(), id)
 	if err != nil {
 		return
@@ -81,6 +86,7 @@ func (hc *HetznerClient) getCloudServerByID(id int) (server *hcloud.Server, err 
 }
 
 func (hc *HetznerClient) getRobotServerByID(id int) (*hetzner.ServerSummary, error) {
+	logrus.Debug("Get robot servers by ID")
 	summary, err := hc.getRobotServers()
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func (hc *HetznerClient) getRobotServerByID(id int) (*hetzner.ServerSummary, err
 }
 
 func convertFailureDomainToRegion(failuredomain string) string {
+	logrus.Debug("Converting failureDomain to Region")
 	splitted := strings.Split(failuredomain, "-")
 	if len(splitted) > 0 {
 		return splitted[0]
@@ -103,6 +110,7 @@ func convertFailureDomainToRegion(failuredomain string) string {
 }
 
 func providerIDToServerID(providerID string) (id int, err error) {
+	logrus.Debugf("Provider id to server-id: %v", providerID)
 	providerPrefix := providerName + "://"
 	if !strings.HasPrefix(providerID, providerPrefix) {
 		err = fmt.Errorf("providerID should start with %s://: %s", providerName, providerID)
@@ -118,6 +126,7 @@ func providerIDToServerID(providerID string) (id int, err error) {
 }
 
 func convertCloudServerToServer(server *hcloud.Server) *Server {
+	logrus.Debug("Converting cloud server to server")
 	return &Server{
 		Name:          server.Name,
 		Ipv4:          server.PublicNet.IPv4.IP.String(),
@@ -129,6 +138,7 @@ func convertCloudServerToServer(server *hcloud.Server) *Server {
 }
 
 func convertRobotServerToServer(server *hetzner.ServerSummary) *Server {
+	logrus.Debug("Converting robot server to server")
 	lowerCaseDc := strings.ToLower(server.Dc)
 	return &Server{
 		Name:          server.ServerName,
